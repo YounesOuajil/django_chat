@@ -12,3 +12,4 @@ class Post(models.Model):
     def str(self):
         
         return self.title
+    

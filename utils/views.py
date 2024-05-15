@@ -154,7 +154,7 @@ def all_Internship_Interns(request, Internship_id):
 
 
 import sys
-sys.path.append('C:/Users/pc/Desktop/Stage_PULSE/codes/BackEnd/Project_django/Scrapping_Service/Outlook')
+sys.path.append('C:/Users/youne/OneDrive/Desktop/ATS_Project/Scrapping_Service/Outlook')
 from demo import handle_Scrapping
 
 @api_view(['GET'])

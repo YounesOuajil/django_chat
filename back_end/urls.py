@@ -25,7 +25,9 @@ urlpatterns = [
     path('candidates/', include('candidates.urls')),
     path('recruiters/', include('recruiters.urls')),
     path('ai/', include('utils.urls')),
+    path('messaging/', include('messaging.urls')),
 
+  
 
     
 
