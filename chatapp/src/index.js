@@ -3,19 +3,20 @@ import ReactDOM from "react-dom/client";
 import "./index.css";
 import App from "./App";
 import reportWebVitals from "./reportWebVitals";
-import Conversation from "./conversation";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
+import Chat from "./chat";
+
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
   // <React.StrictMode>
-  <Conversation />
-  //   <Conversation></Conversation>
+  //   <App />
   // </React.StrictMode>
-  // <BrowserRouter>
-  //   <Routes>
-  //     <Route path="/admin/" element={<App />} />
-  //   </Routes>
-  // </BrowserRouter>
+  <BrowserRouter>
+    <Routes>
+      <Route path="/admin" element={<App />} />
+      <Route path="/conv" element={<Chat />} />
+    </Routes>
+  </BrowserRouter>
 );
 
 // If you want to start measuring performance in your app, pass a function
