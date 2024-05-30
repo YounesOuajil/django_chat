@@ -1,0 +1,221 @@
+/* Conversation.css */
+
+/* Base colors */
+:root {
+  --primary-color: #2b5876;
+  --secondary-color: #f8d568;
+  --accent-color: #f76c6c;
+  --text-color: #333;
+}
+
+/* Conversation container */
+.conversation-container {
+  max-width: 700px;
+  margin: 20px auto;
+  padding: 20px;
+  background-color: #f9f9f9;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  position: relative;
+}
+
+/* Form styling */
+form {
+  margin-bottom: 20px;
+}
+
+label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 5px;
+  color: var(--primary-color);
+}
+
+input[type="text"] {
+  width: calc(100% - 20px);
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 20px;
+  outline: none;
+}
+
+button[type="submit"] {
+  width: 100px;
+  padding: 10px;
+  background-color: var(--primary-color);
+  color: #fff;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  outline: none;
+  transition: background-color 0.3s ease;
+}
+
+button[type="submit"]:hover {
+  background-color: var(--secondary-color);
+}
+
+/* Message list */
+.message-list {
+  list-style: none;
+  padding: 0;
+}
+
+.message-list li {
+  padding: 10px 20px;
+  margin-bottom: 10px;
+  border-radius: 10px;
+}
+
+/* Sent message */
+.sent-message {
+  background-color: var(--primary-color);
+  color: #fff;
+  position: relative;
+}
+
+.sent-message:before {
+  content: "";
+  position: absolute;
+  bottom: -5px;
+  left: 5px;
+  border-style: solid;
+  border-width: 10px 10px 0 0;
+  border-color: var(--primary-color) transparent transparent transparent;
+}
+
+/* Received message */
+.received-message {
+  background-color: #f0f0f0;
+  color: var(--text-color);
+  position: relative;
+}
+
+.received-message:before {
+  content: "";
+  position: absolute;
+  bottom: -5px;
+  right: 5px;
+  border-style: solid;
+  border-width: 10px 0 0 10px;
+  border-color: #f0f0f0 transparent transparent transparent;
+}
+
+/* Username button */
+.username-button {
+  background: transparent;
+  border: none;
+  font-weight: bold;
+  color: var(--accent-color);
+  cursor: pointer;
+}
+
+.username-button:hover {
+  text-decoration: underline;
+}
+
+/* Loading animation */
+@keyframes pulse {
+  0% {
+    transform: scale(0.9);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(0.9);
+  }
+}
+
+.loading-container {
+  text-align: center;
+}
+
+.loading {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  background-color: var(--primary-color);
+  border-radius: 50%;
+  animation: pulse 1s infinite ease-in-out;
+  margin-right: 10px;
+  vertical-align: middle;
+}
+
+/* Error message */
+.error-message {
+  color: #ff0000;
+  font-size: 14px;
+  margin-top: 10px;
+}
+
+/* Responsive adjustments */
+@media screen and (max-width: 600px) {
+  .conversation-container {
+    max-width: 100%;
+    border-radius: 0;
+  }
+
+  input[type="text"] {
+    width: 100%;
+  }
+}
+
+/* Additional Styles */
+
+/* Header styles */
+.header {
+  font-size: 24px;
+  font-weight: bold;
+  text-align: center;
+  color: var(--primary-color);
+  margin-bottom: 20px;
+}
+
+/* Footer styles */
+.footer {
+  text-align: center;
+  margin-top: 40px;
+  color: var(--primary-color);
+}
+
+.footer a {
+  color: var(--primary-color);
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.footer a:hover {
+  color: var(--secondary-color);
+}
+
+/* Avatar styles */
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  margin-right: 10px;
+}
+
+/* Timestamp styles */
+.timestamp {
+  font-size: 12px;
+  color: #999;
+  margin-left: 10px;
+}
+
+/* Emoji styles */
+.emoji {
+  font-size: 20px;
+  margin-right: 5px;
+}
+.video-container {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 20px;
+}
+
+video {
+  width: 45%;
+  border: 2px solid #000;
+}
