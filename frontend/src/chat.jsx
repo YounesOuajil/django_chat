@@ -1711,72 +1711,41 @@ const iceServers = [
 ];
 
 const Chat = () => {
+  const [socket, setSocket] = useState(null);
   const [message, setMessage] = useState("");
   const [receivedMessages, setReceivedMessages] = useState([]);
   const [messages, setMessages] = useState([]);
-  const [socket, setSocket] = useState(null);
   const [socketStatus, setSocketStatus] = useState("Connecting...");
-  const peerConnectionRef = useRef(null);
+  const peerConnectionRef1 = useRef(null);
+  const peerConnectionRef2 = useRef(null);
   const historyRef = useRef(null);
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
-  const pendingCandidates = useRef([]);
+  const pendingCandidates1 = useRef([]);
+  const pendingCandidates2 = useRef([]);
   const location = useLocation();
   const { id: receiverId, senderId } = location.state;
-  let didIOffer = useRef(false);
-  const receiver_id = 5;
-  const sender_id = 1;
-  const ensureWebSocketOpen = (socket) => {
-    return new Promise((resolve, reject) => {
-      if (socket && socket.readyState === WebSocket.OPEN) {
-        resolve();
-      } else {
-        const newSocket = new WebSocket(
-          `ws://localhost:8000/ws/chat/${sender_id}/${receiver_id}/`
-        );
-        newSocket.onopen = () => {
-          setSocket(newSocket);
-          resolve();
-        };
-        newSocket.onerror = (error) => {
-          reject(new Error("Failed to open WebSocket connection"));
-        };
-      }
-    });
-  };
 
-  const socketDisconnect = () => {
-    socket.close();
-    setSocket(null);
-    setSocketStatus("Disconnected");
-  };
-
-  useEffect(() => {
-    console.log("socketStatus");
-
-    const newSocket = new WebSocket(
-      `ws://localhost:8000/ws/chat/${sender_id}/${receiver_id}/`
-    );
-
-    newSocket.onopen = () => {
-      setSocketStatus("Connected");
-      setSocket(newSocket);
-    };
-    newSocket.onclose = () => setSocketStatus("Disconnected");
-    newSocket.onerror = (error) => setSocketStatus("Error");
-    newSocket.onmessage = handleSocketMessage;
-    setSocket(newSocket);
-  }, []);
-
-  useEffect(() => {
-    console.log(socketStatus);
-    console.log("peer", peerConnectionRef.current);
-  }, [socketStatus]);
-
-  useEffect(() => {
-    if (receiverId && senderId) {
-      getHistory();
+  const socketConnection = (senderId, receiverId) => {
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      console.log("Socket already open");
+      return socket;
+    } else {
+      const newSocket = new WebSocket(
+        `ws://localhost:8000/ws/chat/${receiverId}/${senderId}/`
+      );
+      newSocket.onopen = () => {
+        setSocketStatus("Connected");
+        setSocket(newSocket);
+      };
+      console.log("Socket created ", newSocket);
+      return newSocket;
     }
+  };
+
+  useEffect(() => {
+    const newSocket = socketConnection(senderId, receiverId);
+    newSocket.onmessage = handleSocketMessage;
   }, [receiverId, senderId]);
 
   const handleSocketMessage = (event) => {
@@ -1800,10 +1769,20 @@ const Chat = () => {
     }
   };
 
+  useEffect(() => {
+    console.log(socketStatus);
+  }, [socketStatus]);
+
+  useEffect(() => {
+    if (receiverId && senderId) {
+      getHistory();
+    }
+  }, [receiverId, senderId]);
+
   const getHistory = async () => {
     try {
       const response = await fetch(
-        `http://localhost:8000/messaging/api/chat/${sender_id}/${receiver_id}/history/`
+        `http://localhost:8000/messaging/api/chat/${receiverId}/${senderId}/history/`
       );
       if (!response.ok) throw new Error("Failed to fetch history");
       const result = await response.json();
@@ -1834,11 +1813,14 @@ const Chat = () => {
     }
   };
 
-  const initializePeerConnection = async () => {
-    const peer = new RTCPeerConnection({ iceServers });
-    peerConnectionRef.current = peer;
+  const initializePeerConnection1 = async () => {
+    const peer = new RTCPeerConnection(iceServers);
+    peerConnectionRef1.current = peer;
     console.log("peer initialize", peer);
-    console.log("ice server : ", iceServers);
+
+    peer.addEventListener("signalingstatechange", () => {
+      console.log("Signaling state:", peer.signalingState);
+    });
 
     const localStream = await navigator.mediaDevices.getUserMedia({
       video: true,
@@ -1849,24 +1831,69 @@ const Chat = () => {
       .getTracks()
       .forEach((track) => peer.addTrack(track, localStream));
 
-    const remoteStream = new MediaStream();
-    remoteVideoRef.current.srcObject = remoteStream;
-    peer.ontrack = (event) => {
-      event.streams[0].getTracks().forEach((track) => {
-        remoteStream.addTrack(track);
-      });
-    };
+    peer.addEventListener("track", (event) => {
+      if (remoteVideoRef.current.srcObject !== event.streams[0]) {
+        remoteVideoRef.current.srcObject = event.streams[0];
+        console.log("Remote stream added.");
+      }
+    });
 
     peer.onicecandidate = (event) => {
-      if (event.candidate && socket && socket.readyState === WebSocket.OPEN) {
-        socket.send(
-          JSON.stringify({ type: "ice_candidate", candidate: event.candidate })
-        );
+      if (event.candidate) {
+        console.log("Sending ICE candidate:", event.candidate);
+        if (socket && socket.readyState === WebSocket.OPEN) {
+          socket.send(
+            JSON.stringify({
+              type: "ice_candidate",
+              candidate: event.candidate,
+              target: "peer1",
+            })
+          );
+        }
       }
     };
 
-    peer.oniceconnectionstatechange = () => {
-      console.log("ICE connection state:", peer.iceConnectionState);
+    return peer;
+  };
+
+  const initializePeerConnection2 = async () => {
+    const peer = new RTCPeerConnection(iceServers);
+    peerConnectionRef2.current = peer;
+    console.log("peer initialize", peer);
+
+    peer.addEventListener("signalingstatechange", () => {
+      console.log("Signaling state:", peer.signalingState);
+    });
+
+    const localStream = await navigator.mediaDevices.getUserMedia({
+      video: true,
+      audio: true,
+    });
+    localVideoRef.current.srcObject = localStream;
+    localStream
+      .getTracks()
+      .forEach((track) => peer.addTrack(track, localStream));
+
+    peer.addEventListener("track", (event) => {
+      if (remoteVideoRef.current.srcObject !== event.streams[0]) {
+        remoteVideoRef.current.srcObject = event.streams[0];
+        console.log("Remote stream added.");
+      }
+    });
+
+    peer.onicecandidate = (event) => {
+      if (event.candidate) {
+        console.log("Sending ICE candidate:", event.candidate);
+        if (socket && socket.readyState === WebSocket.OPEN) {
+          socket.send(
+            JSON.stringify({
+              type: "ice_candidate",
+              candidate: event.candidate,
+              target: "peer2",
+            })
+          );
+        }
+      }
     };
 
     return peer;
@@ -1874,82 +1901,153 @@ const Chat = () => {
 
   const startCall = async () => {
     console.log("Starting call...");
-    if (!didIOffer.current) {
-      didIOffer.current = true;
-      const peer = await initializePeerConnection();
-      const offer = await peer.createOffer();
-      await peer.setLocalDescription(new RTCSessionDescription(offer));
-      console.log(
-        "---the caller local descriptison is set succsefully",
-        peer.localDescription
-      );
 
-      if (socket && socket.readyState === WebSocket.OPEN) {
-        console.log("socket created", socket);
-        socket.send(
-          JSON.stringify({ type: "offer", offer: peer.localDescription })
-        );
-      }
+    const peer = await initializePeerConnection1();
+    console.log("your peer from the offer is ", peer);
+    console.log(
+      "the status of my remote description in the start call is ",
+      peer.signalingState
+    );
+    const offer = await peer.createOffer();
+    await peer.setLocalDescription(new RTCSessionDescription(offer));
+    console.log(
+      "---the caller local description is set successfully",
+      peer.localDescription
+    );
+
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      console.log("send the offer ...");
+      socket.send(
+        JSON.stringify({ type: "offer", offer: peer.localDescription })
+      );
+      console.log("offer is sent ");
     }
   };
 
+  const ensureWebSocketOpen = (socket) => {
+    return new Promise((resolve, reject) => {
+      if (socket.readyState === WebSocket.OPEN) {
+        resolve();
+      } else {
+        socket.addEventListener("open", resolve, { once: true });
+        socket.addEventListener(
+          "error",
+          () => reject(new Error("WebSocket error")),
+          { once: true }
+        );
+      }
+    });
+  };
+
   const handleOffer = async (data) => {
-    console.log("Handling offer...", data);
-    if (!didIOffer.current) {
-      didIOffer.current = true;
-      const peer = await initializePeerConnection();
-      await peer.setRemoteDescription(new RTCSessionDescription(data.offer));
-      console.log("----Remote description of the answer is set");
-      while (pendingCandidates.current.length > 0) {
-        const candidate = pendingCandidates.current.shift();
-        await peer.addIceCandidate(new RTCIceCandidate(candidate));
-      }
-      const answer = await peer.createAnswer();
-      await peer.setLocalDescription(new RTCSessionDescription(answer));
-      console.log("---the answer local descriptison is set succsefully");
-      try {
-        await ensureWebSocketOpen(socket);
-        if (socket && socket.readyState === WebSocket.OPEN) {
-          console.log("Socket is open");
-          socket.send(
-            JSON.stringify({ type: "answer", answer: peer.localDescription })
-          );
-          console.log("Sent answer");
-        }
-      } catch (error) {
-        console.error("Error ensuring WebSocket is open:", error.message);
-      }
+    console.log("offer received...Handling ...", data);
+    const peer = await initializePeerConnection2();
+    console.log("your peer from the answer is ", peer);
+    console.log(
+      "the status of my remote description in the handling offer is",
+      peer.signalingState
+    );
+    await peer.setRemoteDescription(new RTCSessionDescription(data.offer));
+    console.log(
+      "----Remote description of the offer is set",
+      peer.remoteDescription
+    );
+
+    while (pendingCandidates2.current.length > 0) {
+      const candidate = pendingCandidates2.current.shift();
+      await peer.addIceCandidate(new RTCIceCandidate(candidate));
+    }
+
+    const answer = await peer.createAnswer();
+    await peer.setLocalDescription(new RTCSessionDescription(answer));
+    console.log(
+      "---the answer local description is set successfully",
+      peer.localDescription
+    );
+
+    try {
+      const socket = socketConnection(senderId, receiverId);
+      console.log("Socket created", socket);
+
+      await ensureWebSocketOpen(socket);
+      console.log("Socket is open", socket);
+
+      socket.send(
+        JSON.stringify({ type: "answer", answer: peer.localDescription })
+      );
+      console.log("Sending the answer");
+    } catch (error) {
+      console.error("Error ensuring WebSocket is open:", error.message);
     }
   };
 
   const handleAnswer = async (data) => {
-    console.log("Handling answer...", data);
-    const peer = peerConnectionRef.current;
+    // if (peerConnectionRef2.current.id === senderId) {
+    //   console.log('okhroj nayyek')
+    //   return;
+    // }
+    console.log("peerConnectionRef2.current.id", data);
+    console.log("Answer received... Handling ...", data);
+    console.log("Answer received... Handling ...", data);
 
-    try {
-      await peer.setRemoteDescription(new RTCSessionDescription(data.answer));
-      console.log("----Remote description of the caller is set");
-    } catch (err) {
-      console.error("Failed to set remote description:", err);
+    if (!peerConnectionRef1.current) {
+      console.log("Peer connection not initialized. Initializing now...");
+      await initializePeerConnection1();
+    }
+
+    const peer = peerConnectionRef1.current;
+    console.log("your peer from the offer 2 is ", peer);
+
+    if (!peer) {
+      console.error("Peer connection is not initialized.");
       return;
     }
 
-    while (pendingCandidates.current.length > 0) {
-      const candidate = pendingCandidates.current.shift();
-      await peer.addIceCandidate(new RTCIceCandidate(candidate));
+    console.log(
+      "the status of my remote description in the handling answer is",
+      peer.signalingState
+    );
+
+    try {
+      console.log("the answer remote", peer.remoteDescription);
+      await peer.setRemoteDescription(new RTCSessionDescription(data.answer));
+      console.log("----Remote description of the answer is set");
+
+      while (pendingCandidates1.current.length > 0) {
+        const candidate = pendingCandidates1.current.shift();
+        await peer.addIceCandidate(new RTCIceCandidate(candidate));
+      }
+      console.log("----All pending ICE candidates have been added");
+    } catch (err) {
+      console.error("Failed to set remote description:", err);
     }
-    console.log("----All pending ICE candidates have been added");
   };
 
   const handleNewICECandidate = async (data) => {
     const candidate = new RTCIceCandidate(data.candidate);
-    if (
-      peerConnectionRef.current &&
-      peerConnectionRef.current.remoteDescription
-    ) {
-      await peerConnectionRef.current.addIceCandidate(candidate);
-    } else {
-      pendingCandidates.current.push(candidate);
+    console.log("Received ICE candidate:", candidate);
+    if (data.target === "peer1") {
+      if (
+        peerConnectionRef1.current &&
+        peerConnectionRef1.current.remoteDescription
+      ) {
+        await peerConnectionRef1.current.addIceCandidate(candidate);
+        console.log("ICE candidate added to peer1");
+      } else {
+        pendingCandidates1.current.push(candidate);
+        console.log("ICE candidate added to pending list for peer1");
+      }
+    } else if (data.target === "peer2") {
+      if (
+        peerConnectionRef2.current &&
+        peerConnectionRef2.current.remoteDescription
+      ) {
+        await peerConnectionRef2.current.addIceCandidate(candidate);
+        console.log("ICE candidate added to peer2");
+      } else {
+        pendingCandidates2.current.push(candidate);
+        console.log("ICE candidate added to pending list for peer2");
+      }
     }
   };
 
@@ -2005,7 +2103,6 @@ const Chat = () => {
       </div>
       <div className="call-actions">
         <button onClick={startCall}>Start Call</button>
-        <button onClick={socketDisconnect}>disconnect</button>
       </div>
     </div>
   );

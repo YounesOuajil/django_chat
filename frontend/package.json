@@ -10,7 +10,12 @@
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.23.1",
     "react-scripts": "5.0.1",
-    "web-vitals": "^2.1.4"
+    "react-use-websocket": "^4.8.1",
+    "reconnecting-websocket": "^4.4.0",
+    "simple-peer": "^9.11.1",
+    "socket.io-client": "^4.7.5",
+    "web-vitals": "^2.1.4",
+    "websocket": "^1.0.35"
   },
   "scripts": {
     "start": "react-scripts start",
@@ -35,5 +40,9 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "react-scripts": "^4.0.3",
+    "eslint-config-react-app": "^6.0.0"
   }
 }
